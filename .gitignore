@@ -1,0 +1,7 @@
+node_modules/
+.local-chromium/
+.cache/
+npm-debug.log
+.env
+dist/
+build/
