@@ -1,6 +1,7 @@
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const logger = require("./utils/logger");
+const botState = require("./state");
 
 const client = new Client({
   auth: new LocalAuth(),
@@ -19,19 +20,23 @@ const client = new Client({
 client.on("qr", (qr) => {
   qrcode.generate(qr, { small: true });
   logger.info("QR Code gerado. Escaneie com o WhatsApp.");
+  botState.setBotReady(false);
 });
 
 client.on("ready", () => {
   logger.info("Bot da Auto Escola conectado ao WhatsApp!");
+  botState.setBotReady(true);
 });
 
 client.on("disconnected", (reason) => {
   logger.warn(`Desconectado: ${reason}. Tentando reconectar...`);
+  botState.setBotReady(false);
   client.initialize();
 });
 
 client.on("auth_failure", (msg) => {
   logger.error(`Falha de autenticação: ${msg}`);
+  botState.setBotReady(false);
 });
 
 module.exports = client;

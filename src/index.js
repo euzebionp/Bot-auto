@@ -1,11 +1,16 @@
+require("dotenv").config();
+
 const client = require("./client");
 const logger = require("./utils/logger");
 const { randomDelay } = require("./utils/delay");
 const { syncDatabase } = require("./database/models");
 const { processarMensagem, handleInicio } = require("./handlers/dispatcher");
 const { iniciarLembretes } = require("./cron/lembrete");
+const botState = require("./state");
+const { iniciarServidor } = require("./api/server");
 
-const contatosRespondidos = new Set();
+botState.setClient(client);
+
 const COOLDOWN_HORAS = 2;
 const COOLDOWN_MS = COOLDOWN_HORAS * 60 * 60 * 1000;
 
@@ -14,21 +19,23 @@ const iniciar = async () => {
     await syncDatabase();
     logger.info("Banco de dados sincronizado.");
 
+    await iniciarServidor();
+
     iniciarLembretes();
 
     client.on("message", async (msg) => {
       if (!msg.from.endsWith("@c.us")) return;
       if (msg.from === "status@broadcast") return;
 
-      if (contatosRespondidos.has(msg.from)) {
+      if (botState.contatosRespondidos.has(msg.from)) {
         logger.info(`Cooldown ativo para ${msg.from}. Ignorando.`);
         return;
       }
 
       try {
-        contatosRespondidos.add(msg.from);
+        botState.contatosRespondidos.add(msg.from);
         setTimeout(() => {
-          contatosRespondidos.delete(msg.from);
+          botState.contatosRespondidos.delete(msg.from);
         }, COOLDOWN_MS);
 
         if (

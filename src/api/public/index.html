@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Painel de Controle - Auto Escola</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f1219;--sidebar:#161b26;--card:#1e2533;--border:#2a3346;--text:#c8d0e0;--text-muted:#7a8499;--primary:#6366f1;--primary-hover:#818cf8;--success:#22c55e;--warning:#eab308;--danger:#ef4444;--info:#3b82f6;--radius:8px;--shadow:0 2px 8px rgba(0,0,0,.3)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;font-size:14px;line-height:1.5}
+.sidebar{width:220px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar .logo{padding:20px;font-size:16px;font-weight:700;color:var(--primary);border-bottom:1px solid var(--border);letter-spacing:-.3px}
+.sidebar .user-info{padding:12px 16px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.sidebar .user-info .role{background:var(--primary);color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;text-transform:uppercase}
+.sidebar nav{padding:12px 8px;flex:1}
+.sidebar nav a{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:6px;color:var(--text-muted);text-decoration:none;cursor:pointer;margin-bottom:2px;transition:all .15s;font-size:13px}
+.sidebar nav a:hover{background:var(--card);color:var(--text)}
+.sidebar nav a.active{background:var(--primary);color:#fff}
+.sidebar .logout-btn{padding:12px 16px;border-top:1px solid var(--border)}
+.sidebar .logout-btn button{width:100%;padding:8px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text-muted);cursor:pointer;font-size:12px}
+.sidebar .logout-btn button:hover{background:var(--card);color:var(--danger)}
+.main{flex:1;padding:24px 32px;overflow-y:auto;max-width:1400px}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.topbar h1{font-size:20px;font-weight:600;color:var(--text)}
+.topbar-actions{display:flex;gap:12px;align-items:center}
+.topbar-actions .last-update{font-size:12px;color:var(--text-muted)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{background:var(--card);border-color:var(--text-muted)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-success{background:var(--success);color:#fff}
+.btn-warning{background:var(--warning);color:#000}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-info{background:var(--info);color:#fff}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;transition:border-color .15s}
+.card:hover{border-color:var(--primary);cursor:default}
+.card .label{font-size:12px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.card .value{font-size:24px;font-weight:700}
+.card .value.success{color:var(--success)}
+.card .value.warning{color:var(--warning)}
+.card .value.danger{color:var(--danger)}
+.card .value.info{color:var(--info)}
+.card .value.primary{color:var(--primary)}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.chart-card h3{font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text-muted)}
+.chart-card canvas{max-height:250px;max-width:100%}
+.tabela-section{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:24px}
+.tabela-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)}
+.tabela-header h3{font-size:14px;font-weight:600}
+.tabela-header .filtros{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tabela-header input,.tabela-header select{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:6px 10px;color:var(--text);font-size:12px}
+.tabela-header input:focus,.tabela-header select:focus{outline:none;border-color:var(--primary)}
+table{width:100%;border-collapse:collapse}
+table th,table td{padding:10px 16px;text-align:left;border-bottom:1px solid var(--border);font-size:13px}
+table th{color:var(--text-muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;background:var(--sidebar)}
+table tr:hover{background:rgba(99,102,241,.05)}
+table tr:last-child td{border-bottom:none}
+.status{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.status.novo{background:rgba(59,130,246,.15);color:var(--info)}
+.status.qualificado{background:rgba(234,179,8,.15);color:var(--warning)}
+.status.matriculado{background:rgba(34,197,94,.15);color:var(--success)}
+.status.perdido{background:rgba(239,68,68,.15);color:var(--danger)}
+.status.confirmado{background:rgba(34,197,94,.15);color:var(--success)}
+.status.realizado{background:rgba(59,130,246,.15);color:var(--info)}
+.status.cancelado{background:rgba(239,68,68,.15);color:var(--danger)}
+.status.ausente{background:rgba(234,179,8,.15);color:var(--warning)}
+.view{display:none}
+.view.active{display:block}
+.pagination{display:flex;justify-content:center;gap:4px;padding:12px}
+.pagination button{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:4px 10px;color:var(--text);cursor:pointer;font-size:12px}
+.pagination button:hover{background:var(--card)}
+.pagination button.active{background:var(--primary);border-color:var(--primary)}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.config-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.config-card h3{font-size:14px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.config-card .campo{margin-bottom:10px}
+.config-card .campo label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px}
+.config-card .campo input,.config-card .campo textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:7px 10px;color:var(--text);font-size:13px;font-family:inherit}
+.config-card .campo textarea{min-height:60px;resize:vertical}
+.config-card .campo input:focus,.config-card .campo textarea:focus{outline:none;border-color:var(--primary)}
+.log-list{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;max-height:600px;overflow-y:auto;font-family:'Courier New',monospace;font-size:12px;line-height:1.6}
+.log-list .log-entry{padding:4px 0;border-bottom:1px solid var(--border);display:flex;gap:8px}
+.log-list .log-entry:last-child{border-bottom:none}
+.log-list .log-level{font-weight:700;min-width:50px;text-transform:uppercase;font-size:11px}
+.log-list .log-level.error{color:var(--danger)}
+.log-list .log-level.warn{color:var(--warning)}
+.log-list .log-level.info{color:var(--info)}
+.bot-status{display:flex;align-items:center;gap:20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px}
+.bot-status .indicador{width:12px;height:12px;border-radius:50%}
+.bot-status .indicador.online{background:var(--success);box-shadow:0 0 8px var(--success)}
+.bot-status .indicador.offline{background:var(--danger);box-shadow:0 0 8px var(--danger)}
+.bot-status .info h2{font-size:18px;margin-bottom:4px}
+.bot-status .info p{font-size:13px;color:var(--text-muted)}
+.bot-status .actions{margin-left:auto;display:flex;gap:8px}
+.login-container{display:none;justify-content:center;align-items:center;min-height:100vh;width:100%;background:var(--bg)}
+.login-container.active{display:flex}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:32px;width:360px;max-width:90%}
+.login-box h1{font-size:18px;color:var(--primary);margin-bottom:4px;text-align:center}
+.login-box p{font-size:13px;color:var(--text-muted);text-align:center;margin-bottom:24px}
+.login-box .campo{margin-bottom:16px}
+.login-box .campo label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px}
+.login-box .campo input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:10px 12px;color:var(--text);font-size:14px}
+.login-box .campo input:focus{outline:none;border-color:var(--primary)}
+.login-box .login-error{color:var(--danger);font-size:12px;text-align:center;margin-bottom:12px;display:none}
+.login-box .btn{width:100%;padding:10px;justify-content:center;font-size:14px}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;justify-content:center;align-items:center}
+.modal-overlay.active{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:90%;max-width:600px;max-height:80vh;overflow-y:auto}
+.modal h2{font-size:16px;margin-bottom:16px}
+.modal .campo{margin-bottom:12px}
+.modal .campo label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px}
+.modal .campo input,.modal .campo select,.modal .campo textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:7px 10px;color:var(--text);font-size:13px;font-family:inherit}
+.modal .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid var(--border)}
+.conversas{margin-top:8px}
+.conversa-item{padding:6px 10px;border-radius:4px;margin-bottom:4px;font-size:12px}
+.conversa-item.entrada{background:rgba(59,130,246,.1);border-left:3px solid var(--info)}
+.conversa-item.saida{background:rgba(34,197,94,.1);border-left:3px solid var(--success)}
+.app-container{display:none;width:100%}
+.app-container.active{display:flex}
+@media(max-width:900px){.sidebar{width:60px}.sidebar .logo{font-size:0;padding:16px}.sidebar .logo::after{content:'⚙️';font-size:20px}.sidebar .user-info{display:none}.sidebar nav a span:last-child{display:none}.main{padding:16px}.charts{grid-template-columns:1fr}.config-grid{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="login-container active" id="loginContainer">
+  <div class="login-box">
+    <h1>Auto Escola Painel</h1>
+    <p>Faça login para acessar o painel de controle</p>
+    <div class="login-error" id="loginError">Credenciais inválidas</div>
+    <div class="campo">
+      <label>Usuário</label>
+      <input type="text" id="loginUser" placeholder="Digite seu usuário" autocomplete="username">
+    </div>
+    <div class="campo">
+      <label>Senha</label>
+      <input type="password" id="loginPass" placeholder="Digite sua senha" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" onclick="fazerLogin()">Entrar</button>
+  </div>
+</div>
+
+<div class="app-container" id="appContainer">
+  <aside class="sidebar">
+    <div class="logo">Auto Escola Painel</div>
+    <div class="user-info">
+      <span id="userName"></span>
+      <span class="role" id="userRole"></span>
+    </div>
+    <nav>
+      <a class="active" data-view="dashboard"><span>📊</span><span>Dashboard</span></a>
+      <a data-view="leads"><span>👥</span><span>Leads</span></a>
+      <a data-view="agendamentos"><span>📅</span><span>Agendamentos</span></a>
+      <a data-view="config" class="admin-only"><span>⚙️</span><span>Configurações</span></a>
+      <a data-view="logs" class="admin-only"><span>📋</span><span>Logs</span></a>
+      <a data-view="bot"><span>🤖</span><span>Status do Bot</span></a>
+    </nav>
+    <div class="logout-btn">
+      <button onclick="fazerLogout()">🚪 Sair</button>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <h1 id="view-title">Dashboard</h1>
+      <div class="topbar-actions">
+        <span class="last-update" id="lastUpdate"></span>
+        <button class="btn btn-primary btn-sm" onclick="atualizarTudo()">🔄 Atualizar</button>
+      </div>
+    </div>
+
+    <div id="view-dashboard" class="view active"></div>
+    <div id="view-leads" class="view"></div>
+    <div id="view-agendamentos" class="view"></div>
+    <div id="view-config" class="view"></div>
+    <div id="view-logs" class="view"></div>
+    <div id="view-bot" class="view"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+let charts = {};
+let usuarioAtual = null;
+
+function getToken() { return localStorage.getItem('auth_token'); }
+function getRole() { return localStorage.getItem('auth_role'); }
+
+async function apiFetch(url, opts = {}) {
+  const token = getToken();
+  const headers = { 'Content-Type':'application/json' };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+
+  try {
+    const r = await fetch(url, { headers, ...opts });
+    if (r.status === 401) {
+      fazerLogout();
+      return { erro: 'Sessão expirada' };
+    }
+    if (r.status === 403) {
+      return { erro: 'Acesso restrito a administradores' };
+    }
+    if (!r.ok) throw new Error(await r.text());
+    return await r.json();
+  } catch(e) {
+    if (e.message === 'Failed to fetch') return { erro: 'Erro de conexão' };
+    return { erro: e.message };
+  }
+}
+
+async function fazerLogin() {
+  const usuario = document.getElementById('loginUser').value.trim();
+  const senha = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+
+  if (!usuario || !senha) {
+    errEl.textContent = 'Preencha usuário e senha';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const r = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json' },
+    body: JSON.stringify({ usuario, senha })
+  });
+
+  if (!r.ok) {
+    errEl.textContent = 'Credenciais inválidas';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const dados = await r.json();
+  localStorage.setItem('auth_token', dados.token);
+  localStorage.setItem('auth_role', dados.role);
+  localStorage.setItem('auth_user', dados.usuario);
+  entrarPainel(dados.role, dados.usuario);
+}
+
+function entrarPainel(role, usuario) {
+  usuarioAtual = role;
+  document.getElementById('loginContainer').classList.remove('active');
+  document.getElementById('appContainer').classList.add('active');
+  document.getElementById('userName').textContent = usuario;
+  document.getElementById('userRole').textContent = role;
+
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = role === 'admin' ? '' : 'none';
+  });
+
+  if (role !== 'admin') {
+    const view = document.querySelector('.view.active')?.id?.replace('view-','');
+    if (view === 'config' || view === 'logs') {
+      navegar('dashboard');
+    }
+  }
+
+  carregarDashboard();
+}
+
+function fazerLogout() {
+  const token = getToken();
+  if (token) {
+    fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token }
+    }).catch(() => {});
+  }
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('auth_role');
+  localStorage.removeItem('auth_user');
+  usuarioAtual = null;
+  document.getElementById('appContainer').classList.remove('active');
+  document.getElementById('loginContainer').classList.add('active');
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').style.display = 'none';
+}
+
+document.getElementById('loginPass').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') fazerLogin();
+});
+
+function navegar(vista) {
+  const role = getRole();
+  if ((vista === 'config' || vista === 'logs') && role !== 'admin') return;
+
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('view-' + vista).classList.add('active');
+  document.querySelector(`[data-view="${vista}"]`).classList.add('active');
+  const titulos = {dashboard:'Dashboard',leads:'Leads',agendamentos:'Agendamentos',config:'Configurações',logs:'Logs',bot:'Status do Bot'};
+  document.getElementById('view-title').textContent = titulos[vista] || vista;
+  atualizarVista(vista);
+}
+
+document.querySelectorAll('.sidebar nav a').forEach(a => {
+  a.addEventListener('click', () => navegar(a.dataset.view));
+});
+
+function atualizarTudo() {
+  const vista = document.querySelector('.view.active').id.replace('view-','');
+  atualizarVista(vista);
+}
+
+function atualizarVista(vista) {
+  if (vista === 'dashboard') carregarDashboard();
+  else if (vista === 'leads') carregarLeads();
+  else if (vista === 'agendamentos') carregarAgendamentos();
+  else if (vista === 'config') carregarConfig();
+  else if (vista === 'logs') carregarLogs();
+  else if (vista === 'bot') carregarStatusBot();
+  document.getElementById('lastUpdate').textContent = 'Atualizado: ' + new Date().toLocaleTimeString();
+}
+
+function escapeHtml(t) {
+  if (!t) return '-';
+  const d = document.createElement('div');
+  d.textContent = t;
+  return d.innerHTML;
+}
+
+function abrirModal(html) {
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function fecharModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+}
+
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modalOverlay')) fecharModal();
+});
+
+async function carregarDashboard() {
+  const el = document.getElementById('view-dashboard');
+  const dados = await apiFetch('/api/kpi/resumo');
+  if (dados.erro) { el.innerHTML = '<div class="card"><p>Erro ao carregar dados</p></div>'; return; }
+
+  el.innerHTML = `
+    <div class="cards">
+      <div class="card"><div class="label">Total de Leads</div><div class="value primary">${dados.totalLeads}</div></div>
+      <div class="card"><div class="label">Leads Hoje</div><div class="value info">${dados.leadsHoje}</div></div>
+      <div class="card"><div class="label">Agendamentos</div><div class="value primary">${dados.totalAgendamentos}</div></div>
+      <div class="card"><div class="label">Agendamentos Hoje</div><div class="value info">${dados.agendamentosHoje}</div></div>
+      <div class="card"><div class="label">Consentimento LGPD</div><div class="value ${dados.taxaConsentimento >= 50 ? 'success' : 'warning'}">${dados.taxaConsentimento}%</div></div>
+      <div class="card"><div class="label">Conversas Registradas</div><div class="value info">${dados.totalConversas}</div></div>
+    </div>
+    <div class="charts">
+      <div class="chart-card"><h3>Leads por Status</h3><canvas id="chartStatusLeads"></canvas></div>
+      <div class="chart-card"><h3>Agendamentos por Status</h3><canvas id="chartStatusAgend"></canvas></div>
+      <div class="chart-card"><h3>Leads por Interesse</h3><canvas id="chartInteresse"></canvas></div>
+      <div class="chart-card"><h3>Leads por Dia (30 dias)</h3><canvas id="chartLeadsDia"></canvas></div>
+    </div>
+    <div class="tabela-section">
+      <div class="tabela-header"><h3>Últimos Leads</h3></div>
+      <table><thead><tr><th>Nome</th><th>Telefone</th><th>Interesse</th><th>Status</th><th>LGPD</th><th>Data</th></tr></thead>
+      <tbody>${dados.ultimosLeads.map(l => `<tr><td>${escapeHtml(l.nome)}</td><td>${escapeHtml(l.telefone)}</td><td>${escapeHtml(l.interesse)||'-'}</td><td><span class="status ${l.status}">${l.status}</span></td><td>${l.consentimento_lgpd ? '✅' : '❌'}</td><td>${new Date(l.created_at).toLocaleDateString()}</td></tr>`).join('')}</tbody></table>
+    </div>
+    <div class="tabela-section">
+      <div class="tabela-header"><h3>Próximos Agendamentos</h3></div>
+      <table><thead><tr><th>Lead</th><th>Data/Hora</th><th>Tipo</th><th>Status</th></tr></thead>
+      <tbody>${dados.agendamentosProximos.length ? dados.agendamentosProximos.map(a => `<tr><td>${escapeHtml(a.Lead?.nome||'#')}</td><td>${new Date(a.data_hora).toLocaleString('pt-BR')}</td><td>${a.tipo.replace(/_/g,' ')}</td><td><span class="status ${a.status}">${a.status}</span></td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--text-muted)">Nenhum agendamento próximo</td></tr>'}</tbody></table>
+    </div>
+  `;
+
+  Object.values(charts).forEach(c => { try { c.destroy(); } catch(e) {} });
+  charts = {};
+
+  if (dados.leadsPorStatus && dados.leadsPorStatus.length) {
+    charts.statusLeads = new Chart(document.getElementById('chartStatusLeads'), {
+      type: 'doughnut',
+      data: { labels: dados.leadsPorStatus.map(s => s.status), datasets: [{ data: dados.leadsPorStatus.map(s => parseInt(s.count)), backgroundColor: ['#3b82f6','#eab308','#22c55e','#ef4444'] }] },
+      options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#c8d0e0' } } } }
+    });
+  }
+  if (dados.agendamentosPorStatus && dados.agendamentosPorStatus.length) {
+    charts.statusAgend = new Chart(document.getElementById('chartStatusAgend'), {
+      type: 'doughnut',
+      data: { labels: dados.agendamentosPorStatus.map(s => s.status), datasets: [{ data: dados.agendamentosPorStatus.map(s => parseInt(s.count)), backgroundColor: ['#22c55e','#3b82f6','#ef4444','#eab308'] }] },
+      options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#c8d0e0' } } } }
+    });
+  }
+  if (dados.leadsPorInteresse && dados.leadsPorInteresse.length) {
+    charts.interesse = new Chart(document.getElementById('chartInteresse'), {
+      type: 'bar',
+      data: { labels: dados.leadsPorInteresse.map(s => s.interesse), datasets: [{ label: 'Leads', data: dados.leadsPorInteresse.map(s => parseInt(s.count)), backgroundColor: '#6366f1', borderRadius: 4 }] },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#7a8499' } }, x: { ticks: { color: '#7a8499' } } } }
+    });
+  }
+  if (dados.leadsPorDia && dados.leadsPorDia.length) {
+    charts.leadsDia = new Chart(document.getElementById('chartLeadsDia'), {
+      type: 'line',
+      data: { labels: dados.leadsPorDia.map(s => s.dia), datasets: [{ label: 'Leads', data: dados.leadsPorDia.map(s => parseInt(s.count)), borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,.1)', fill: true, tension: .3, pointRadius: 3 }] },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#7a8499' } }, x: { ticks: { color: '#7a8499', maxTicksLimit: 10 } } } }
+    });
+  }
+}
+
+let leadsPagina = 1, leadsFiltro = '';
+async function carregarLeads(pagina) {
+  if (pagina) leadsPagina = pagina;
+  const el = document.getElementById('view-leads');
+  const busca = document.getElementById('leadsBusca')?.value || leadsFiltro;
+  leadsFiltro = busca;
+  const status = document.getElementById('leadsStatus')?.value || '';
+  const dados = await apiFetch(`/api/leads?page=${leadsPagina}&limit=20${busca ? '&busca='+encodeURIComponent(busca) : ''}${status ? '&status='+status : ''}`);
+  if (dados.erro) { el.innerHTML = '<p>Erro ao carregar leads</p>'; return; }
+
+  const totalPag = dados.totalPages || 1;
+  let pagHtml = '';
+  for (let i = 1; i <= totalPag && i <= 10; i++) {
+    pagHtml += `<button class="${i === leadsPagina ? 'active' : ''}" onclick="carregarLeads(${i})">${i}</button>`;
+  }
+
+  el.innerHTML = `
+    <div class="tabela-section">
+      <div class="tabela-header">
+        <h3>Leads (${dados.total})</h3>
+        <div class="filtros">
+          <input type="text" id="leadsBusca" placeholder="Buscar nome/telefone..." value="${escapeHtml(leadsFiltro)}" onkeyup="carregarLeads(1)">
+          <select id="leadsStatus" onchange="carregarLeads(1)">
+            <option value="">Todos</option>
+            <option value="novo" ${status==='novo'?'selected':''}>Novo</option>
+            <option value="qualificado" ${status==='qualificado'?'selected':''}>Qualificado</option>
+            <option value="matriculado" ${status==='matriculado'?'selected':''}>Matriculado</option>
+            <option value="perdido" ${status==='perdido'?'selected':''}>Perdido</option>
+          </select>
+        </div>
+      </div>
+      <table><thead><tr><th>Nome</th><th>Telefone</th><th>Interesse</th><th>Status</th><th>LGPD</th><th>Última Interação</th><th>Ações</th></tr></thead>
+      <tbody>${dados.leads.map(l => `<tr>
+        <td>${escapeHtml(l.nome)||'Anônimo'}</td>
+        <td>${escapeHtml(l.telefone)}</td>
+        <td>${escapeHtml(l.interesse)||'-'}</td>
+        <td><span class="status ${l.status}">${l.status}</span></td>
+        <td>${l.consentimento_lgpd ? '✅' : '❌'}</td>
+        <td>${l.ultima_interacao ? new Date(l.ultima_interacao).toLocaleString('pt-BR') : '-'}</td>
+        <td><button class="btn btn-primary btn-sm" onclick="verLead(${l.id})">Ver</button></td>
+      </tr>`).join('')}</tbody></table>
+      ${dados.leads.length ? '<div class="pagination">'+pagHtml+'</div>' : ''}
+    </div>
+  `;
+}
+
+async function verLead(id) {
+  const lead = await apiFetch(`/api/leads/${id}`);
+  const conversas = await apiFetch(`/api/leads/${id}/conversas`);
+  if (lead.erro) return;
+
+  abrirModal(`
+    <h2>Lead: ${escapeHtml(lead.nome)||'Anônimo'}</h2>
+    <div class="campo"><label>Telefone</label><input value="${escapeHtml(lead.telefone)}" readonly></div>
+    <div class="campo"><label>Interesse</label>
+      <select id="editInteresse">
+        <option value="">Selecionar</option>
+        <option value="A" ${lead.interesse==='A'?'selected':''}>Moto (A)</option>
+        <option value="B" ${lead.interesse==='B'?'selected':''}>Carro (B)</option>
+        <option value="AB" ${lead.interesse==='AB'?'selected':''}>Moto+Carro (AB)</option>
+        <option value="ACC" ${lead.interesse==='ACC'?'selected':''}>ACC</option>
+        <option value="indefinido" ${lead.interesse==='indefinido'?'selected':''}>Indefinido</option>
+      </select>
+    </div>
+    <div class="campo"><label>Status</label>
+      <select id="editStatus">
+        <option value="novo" ${lead.status==='novo'?'selected':''}>Novo</option>
+        <option value="qualificado" ${lead.status==='qualificado'?'selected':''}>Qualificado</option>
+        <option value="matriculado" ${lead.status==='matriculado'?'selected':''}>Matriculado</option>
+        <option value="perdido" ${lead.status==='perdido'?'selected':''}>Perdido</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label><input type="checkbox" id="editLGPD" ${lead.consentimento_lgpd ? 'checked' : ''}> Consentimento LGPD</label>
+    </div>
+    <h3 style="margin-top:16px;font-size:14px;">Histórico de Conversas (${conversas.length})</h3>
+    <div class="conversas">${conversas.length ? conversas.map(c => `<div class="conversa-item ${c.direcao}"><strong>${c.direcao === 'entrada' ? '👤 Cliente' : '🤖 Bot'}</strong> - ${new Date(c.timestamp).toLocaleString('pt-BR')}<br>${escapeHtml(c.mensagem)}</div>`).join('') : '<p style="color:var(--text-muted)">Nenhuma conversa registrada</p>'}</div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarLead(${id})">Salvar</button>
+    </div>
+  `);
+}
+
+async function salvarLead(id) {
+  const dados = {
+    interesse: document.getElementById('editInteresse').value,
+    status: document.getElementById('editStatus').value,
+    consentimento_lgpd: document.getElementById('editLGPD').checked,
+  };
+  const r = await apiFetch(`/api/leads/${id}`, { method:'PUT', body: JSON.stringify(dados) });
+  if (r.erro) { alert('Erro: '+r.erro); return; }
+  fecharModal();
+  carregarLeads();
+}
+
+let agendPagina = 1;
+async function carregarAgendamentos(pagina) {
+  if (pagina) agendPagina = pagina;
+  const el = document.getElementById('view-agendamentos');
+  const status = document.getElementById('agendStatus')?.value || '';
+  const data = document.getElementById('agendData')?.value || '';
+  const params = `page=${agendPagina}&limit=20${status ? '&status='+status : ''}${data ? '&data='+data : ''}`;
+  const dados = await apiFetch(`/api/agendamentos?${params}`);
+  if (dados.erro) { el.innerHTML = '<p>Erro ao carregar agendamentos</p>'; return; }
+
+  const totalPag = dados.totalPages || 1;
+  let pagHtml = '';
+  for (let i = 1; i <= totalPag && i <= 10; i++) {
+    pagHtml += `<button class="${i === agendPagina ? 'active' : ''}" onclick="carregarAgendamentos(${i})">${i}</button>`;
+  }
+
+  el.innerHTML = `
+    <div class="tabela-section">
+      <div class="tabela-header">
+        <h3>Agendamentos (${dados.total})</h3>
+        <div class="filtros">
+          <input type="date" id="agendData" value="${data}" onchange="carregarAgendamentos(1)">
+          <select id="agendStatus" onchange="carregarAgendamentos(1)">
+            <option value="">Todos</option>
+            <option value="confirmado" ${status==='confirmado'?'selected':''}>Confirmado</option>
+            <option value="realizado" ${status==='realizado'?'selected':''}>Realizado</option>
+            <option value="cancelado" ${status==='cancelado'?'selected':''}>Cancelado</option>
+            <option value="ausente" ${status==='ausente'?'selected':''}>Ausente</option>
+          </select>
+        </div>
+      </div>
+      <table><thead><tr><th>Lead</th><th>Data/Hora</th><th>Tipo</th><th>Status</th><th>Observação</th><th>Ações</th></tr></thead>
+      <tbody>${dados.agendamentos.map(a => `<tr>
+        <td>${escapeHtml(a.Lead?.nome)||'ID: '+a.lead_id}</td>
+        <td>${new Date(a.data_hora).toLocaleString('pt-BR')}</td>
+        <td>${a.tipo.replace(/_/g,' ')}</td>
+        <td><span class="status ${a.status}">${a.status}</span></td>
+        <td>${escapeHtml(a.observacao)||'-'}</td>
+        <td><button class="btn btn-primary btn-sm" onclick="verAgendamento(${a.id})">Gerenciar</button></td>
+      </tr>`).join('')}</tbody></table>
+      ${dados.agendamentos.length ? '<div class="pagination">'+pagHtml+'</div>' : ''}
+    </div>
+  `;
+}
+
+async function verAgendamento(id) {
+  const a = await apiFetch(`/api/agendamentos/${id}`);
+  if (a.erro) return;
+
+  abrirModal(`
+    <h2>Agendamento #${a.id}</h2>
+    <div class="campo"><label>Lead</label><input value="${escapeHtml(a.Lead?.nome)||'ID: '+a.lead_id}" readonly></div>
+    <div class="campo"><label>Data/Hora</label><input type="datetime-local" id="editDataHora" value="${a.data_hora ? new Date(a.data_hora).toISOString().slice(0,16) : ''}"></div>
+    <div class="campo"><label>Tipo</label>
+      <select id="editTipo">
+        <option value="aula_pratica" ${a.tipo==='aula_pratica'?'selected':''}>Aula Prática</option>
+        <option value="aula_teorica" ${a.tipo==='aula_teorica'?'selected':''}>Aula Teórica</option>
+        <option value="visita" ${a.tipo==='visita'?'selected':''}>Visita</option>
+        <option value="exame" ${a.tipo==='exame'?'selected':''}>Exame</option>
+      </select>
+    </div>
+    <div class="campo"><label>Status</label>
+      <select id="editAStatus">
+        <option value="confirmado" ${a.status==='confirmado'?'selected':''}>Confirmado</option>
+        <option value="realizado" ${a.status==='realizado'?'selected':''}>Realizado</option>
+        <option value="cancelado" ${a.status==='cancelado'?'selected':''}>Cancelado</option>
+        <option value="ausente" ${a.status==='ausente'?'selected':''}>Ausente</option>
+      </select>
+    </div>
+    <div class="campo"><label>Observação</label><textarea id="editObs">${escapeHtml(a.observacao)||''}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-danger btn-sm" onclick="cancelarAgendamento(${id})">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarAgendamento(${id})">Salvar</button>
+    </div>
+  `);
+}
+
+async function salvarAgendamento(id) {
+  const dados = {
+    data_hora: document.getElementById('editDataHora').value ? new Date(document.getElementById('editDataHora').value).toISOString() : undefined,
+    tipo: document.getElementById('editTipo').value,
+    status: document.getElementById('editAStatus').value,
+    observacao: document.getElementById('editObs').value,
+  };
+  const r = await apiFetch(`/api/agendamentos/${id}`, { method:'PUT', body: JSON.stringify(dados) });
+  if (r.erro) { alert('Erro: '+r.erro); return; }
+  fecharModal();
+  carregarAgendamentos(agendPagina);
+}
+
+async function cancelarAgendamento(id) {
+  if (!confirm('Cancelar este agendamento?')) return;
+  const r = await apiFetch(`/api/agendamentos/${id}`, { method:'DELETE' });
+  if (r.erro) { alert('Erro: '+r.erro); return; }
+  fecharModal();
+  carregarAgendamentos(agendPagina);
+}
+
+async function carregarConfig() {
+  const el = document.getElementById('view-config');
+  const dados = await apiFetch('/api/config');
+  if (dados.erro) { el.innerHTML = '<p>Erro ao carregar configurações</p>'; return; }
+
+  const cats = Object.entries(dados.categorias||{}).map(([k,v]) => `
+    <div class="campo"><label>${escapeHtml(v.nome)}</label><input value="${v.valor}" id="cat_${k}" onchange="salvarConfig('cat_${k}', this.value)"></div>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="config-grid">
+      <div class="config-card">
+        <h3>💰 Categorias e Preços</h3>
+        ${cats}
+      </div>
+      <div class="config-card">
+        <h3>⏰ Horários de Funcionamento</h3>
+        <div class="campo"><label>Seg a Sex</label><input value="${escapeHtml(dados.horarios?.seg_a_sex||'')}" id="horario_seg_sex" onchange="salvarConfig('horario_seg_sex', this.value)"></div>
+        <div class="campo"><label>Sábado</label><input value="${escapeHtml(dados.horarios?.sab||'')}" id="horario_sab" onchange="salvarConfig('horario_sab', this.value)"></div>
+      </div>
+      <div class="config-card">
+        <h3>📍 Endereço e Contato</h3>
+        <div class="campo"><label>Endereço</label><textarea id="endereco" onchange="salvarConfig('endereco', this.value)">${escapeHtml(dados.endereco||'')}</textarea></div>
+        <div class="campo"><label>Telefone Fixo</label><input value="${escapeHtml(dados.telefone||'')}" id="telefone" onchange="salvarConfig('telefone', this.value)"></div>
+      </div>
+      <div class="config-card">
+        <h3>📄 Documentos</h3>
+        ${(dados.documentos||[]).map((d,i) => `<div class="campo"><label>Documento ${i+1}</label><input value="${escapeHtml(d)}" id="doc_${i}" onchange="salvarConfig('doc_${i}', this.value)"></div>`).join('')}
+      </div>
+    </div>
+    <div class="tabela-section">
+      <div class="tabela-header"><h3>Configurações do Banco (Chave/Valor)</h3></div>
+      <table><thead><tr><th>Chave</th><th>Valor</th><th>Ações</th></tr></thead>
+      <tbody>${Object.entries(dados.db||{}).map(([k,v]) => `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(v)}</td><td><button class="btn btn-sm btn-outline" onclick="editarConfigDB('${escapeHtml(k)}','${escapeHtml(v)}')">Editar</button></td></tr>`).join('')}</tbody></table>
+    </div>
+  `;
+}
+
+async function salvarConfig(chave, valor) {
+  const r = await apiFetch(`/api/config/${encodeURIComponent(chave)}`, { method:'PUT', body: JSON.stringify({ valor }) });
+  if (r.erro) console.error('Erro ao salvar config:', r.erro);
+}
+
+function editarConfigDB(chave, valor) {
+  abrirModal(`
+    <h2>Editar Configuração</h2>
+    <div class="campo"><label>Chave</label><input value="${chave}" readonly></div>
+    <div class="campo"><label>Valor</label><textarea id="editConfigValor">${valor}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarConfigDB('${chave}')">Salvar</button>
+    </div>
+  `);
+}
+
+async function salvarConfigDB(chave) {
+  const valor = document.getElementById('editConfigValor').value;
+  const r = await apiFetch(`/api/config/${encodeURIComponent(chave)}`, { method:'PUT', body: JSON.stringify({ valor }) });
+  if (r.erro) { alert('Erro: '+r.erro); return; }
+  fecharModal();
+  carregarConfig();
+}
+
+async function carregarLogs() {
+  const el = document.getElementById('view-logs');
+  const nivel = document.getElementById('logNivel')?.value || 'combined';
+  const dados = await apiFetch(`/api/logs?nivel=${nivel}&linhas=200`);
+  if (dados.erro) { el.innerHTML = '<p>Erro ao carregar logs</p>'; return; }
+
+  el.innerHTML = `
+    <div class="tabela-section">
+      <div class="tabela-header">
+        <h3>Logs (${dados.retornados} de ${dados.totalDisponivel || 0})</h3>
+        <div class="filtros">
+          <select id="logNivel" onchange="carregarLogs()">
+            <option value="combined" ${nivel==='combined'?'selected':''}>Combinado</option>
+            <option value="error" ${nivel==='error'?'selected':''}>Erros</option>
+          </select>
+          <button class="btn btn-sm btn-outline" onclick="carregarLogs()">🔄</button>
+        </div>
+      </div>
+      <div class="log-list">${dados.logs.map(l => {
+        const level = (l.level || '').toLowerCase();
+        const msg = l.message || l.mensagem || JSON.stringify(l);
+        const time = l.timestamp || '';
+        return `<div class="log-entry"><span class="log-level ${level}">${level||'info'}</span><span style="color:var(--text-muted);min-width:140px">${escapeHtml(time)}</span><span>${escapeHtml(msg)}</span></div>`;
+      }).join('')}</div>
+    </div>
+  `;
+}
+
+async function carregarStatusBot() {
+  const el = document.getElementById('view-bot');
+  const dados = await apiFetch('/api/bot/status');
+  if (dados.erro) { el.innerHTML = '<p>Erro ao carregar status</p>'; return; }
+
+  el.innerHTML = `
+    <div class="bot-status">
+      <div class="indicador ${dados.conectado ? 'online' : 'offline'}"></div>
+      <div class="info">
+        <h2>${dados.conectado ? '🟢 Bot Online' : '🔴 Bot Offline'}</h2>
+        <p>${dados.info?.pushname ? 'Conectado como: '+escapeHtml(dados.info.pushname) : 'Aguardando conexão...'}</p>
+        <p style="margin-top:4px">Contatos em cooldown: ${dados.cooldown}</p>
+      </div>
+      <div class="actions">
+        <button class="btn btn-outline btn-sm" onclick="reconectarBot()">🔄 Reconectar</button>
+      </div>
+    </div>
+    <div class="tabela-section">
+      <div class="tabela-header">
+        <h3>Contatos em Cooldown (${dados.cooldown})</h3>
+        ${dados.cooldown > 0 ? '<button class="btn btn-sm btn-danger" onclick="limparCooldown()">Limpar Cooldown</button>' : ''}
+      </div>
+      <table><thead><tr><th>Telefone</th></tr></thead>
+      <tbody>${dados.cooldownContatos?.length ? dados.cooldownContatos.map(t => `<tr><td>${escapeHtml(t)}</td></tr>`).join('') : '<tr><td style="text-align:center;color:var(--text-muted)">Nenhum contato em cooldown</td></tr>'}</tbody></table>
+    </div>
+  `;
+}
+
+async function reconectarBot() {
+  if (!confirm('Solicitar reconexão do bot?')) return;
+  const r = await apiFetch('/api/bot/reconnect', { method:'POST' });
+  if (r.erro) { alert('Erro: '+r.erro); return; }
+  alert('Reconexão solicitada!');
+  carregarStatusBot();
+}
+
+async function limparCooldown() {
+  if (!confirm('Limpar todos os contatos do cooldown?')) return;
+  const r = await apiFetch('/api/bot/cooldown/limpar', { method:'POST' });
+  if (r.erro) { alert('Erro: '+r.erro); return; }
+  carregarStatusBot();
+}
+
+const token = getToken();
+const role = getRole();
+if (token && role) {
+  entrarPainel(role, localStorage.getItem('auth_user') || role);
+} else {
+  document.getElementById('loginContainer').classList.add('active');
+}
+
+setInterval(() => {
+  const vista = document.querySelector('.view.active')?.id?.replace('view-','');
+  if (vista === 'dashboard') carregarDashboard();
+}, 30000);
+</script>
+</body>
+</html>
