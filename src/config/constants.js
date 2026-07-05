@@ -89,6 +89,9 @@ const ERRO_INTERNO = `
 Desculpe, ocorreu um erro interno. Nosso time já foi notificado. Tente novamente mais tarde.
 `;
 
+const FORA_DO_HORARIO_MESSAGE = (saudacao) =>
+  `${saudacao}! 😊\n\nAgradecemos o seu contato! Nosso horário de atendimento é de *Segunda a Sexta-feira, das 08:00 às 17:00*.\n\nAtualmente estamos fora do horário de atendimento, mas pode deixar que vamos retornar o mais breve possível!\n\nPara agilizar, por favor informe seu *nome completo* para entrarmos em contato:`;
+
 module.exports = {
   CATEGORIAS,
   HORARIOS_FUNCIONAMENTO,
@@ -102,4 +105,5 @@ module.exports = {
   AULA_CONFIRMADA,
   LEMBRETE_AULA,
   ERRO_INTERNO,
+  FORA_DO_HORARIO_MESSAGE,
 };

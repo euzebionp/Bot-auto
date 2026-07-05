@@ -737,7 +737,13 @@ async function limparCooldown() {
 const token = getToken();
 const role = getRole();
 if (token && role) {
-  entrarPainel(role, localStorage.getItem('auth_user') || role);
+  apiFetch('/api/auth/me').then(dados => {
+    if (dados.erro || !dados.usuario) {
+      fazerLogout();
+    } else {
+      entrarPainel(dados.role, dados.usuario);
+    }
+  });
 } else {
   document.getElementById('loginContainer').classList.add('active');
 }

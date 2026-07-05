@@ -8,3 +8,5 @@ build/
 data/
 logs/
 .wwebjs_cache/
+.local-auth/
+nul

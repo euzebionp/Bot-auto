@@ -15,9 +15,14 @@ router.get("/status", (req, res) => {
   });
 });
 
-router.post("/reconnect", (req, res) => {
+router.post("/reconnect", async (req, res) => {
   try {
     logger.info("Reconexão solicitada pelo painel de controle");
+    try {
+      await client.destroy();
+    } catch (e) {
+      // cliente já estava destruído
+    }
     client.initialize();
     res.json({ mensagem: "Reconectando..." });
   } catch (error) {

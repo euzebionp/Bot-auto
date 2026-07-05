@@ -20,8 +20,16 @@ const mascararTelefone = (telefone) => {
   return `${digits.slice(0, 2)}****${digits.slice(-2)}`;
 };
 
+const isBusinessHours = () => {
+  const agora = new Date();
+  const diaSemana = agora.getDay();
+  const hora = agora.getHours();
+  return diaSemana >= 1 && diaSemana <= 5 && hora >= 8 && hora < 17;
+};
+
 module.exports = {
   obterSaudacao,
+  isBusinessHours,
   formatarData,
   formatarTelefone,
   mascararTelefone,

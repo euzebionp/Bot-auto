@@ -2,17 +2,74 @@ require("dotenv").config();
 
 const client = require("./client");
 const logger = require("./utils/logger");
-const { randomDelay } = require("./utils/delay");
 const { syncDatabase } = require("./database/models");
 const { processarMensagem, handleInicio } = require("./handlers/dispatcher");
+const leadHandler = require("./handlers/leadHandler");
 const { iniciarLembretes } = require("./cron/lembrete");
 const botState = require("./state");
 const { iniciarServidor } = require("./api/server");
+const { obterSaudacao, isBusinessHours } = require("./utils/helpers");
+const { FORA_DO_HORARIO_MESSAGE } = require("./config/constants");
 
 botState.setClient(client);
 
-const COOLDOWN_HORAS = 2;
-const COOLDOWN_MS = COOLDOWN_HORAS * 60 * 60 * 1000;
+process.on("unhandledRejection", (reason) => {
+  logger.error(`Rejeição não tratada: ${reason?.message || reason}`);
+});
+
+process.on("uncaughtException", (error) => {
+  logger.error(`Exceção não tratada: ${error.message}`);
+});
+
+const COOLDOWN_MS = 2 * 60 * 60 * 1000;
+
+client.on("message", async (msg) => {
+  if (!msg.from.endsWith("@c.us") || msg.from === "status@broadcast") return;
+
+  if (botState.contatosRespondidos.has(msg.from)) return;
+
+  try {
+    botState.contatosRespondidos.add(msg.from);
+    setTimeout(() => botState.contatosRespondidos.delete(msg.from), COOLDOWN_MS);
+
+    const texto = msg.body.trim().toUpperCase();
+    const inicios = ["MENU", "OI", "OLÁ", "OLA", "BOM DIA", "BOA TARDE", "BOA NOITE", "INICIAR"];
+
+    const emHorarioComercial = isBusinessHours();
+    const estaEmFluxo = leadHandler.estaEmCaptura(msg.from);
+
+    if (!emHorarioComercial && !estaEmFluxo) {
+      const chat = await msg.getChat();
+      await new Promise((r) => setTimeout(r, 2000 + Math.random() * 2000));
+      await chat.sendStateTyping();
+      await new Promise((r) => setTimeout(r, 2000 + Math.random() * 2000));
+      await client.sendMessage(msg.from, FORA_DO_HORARIO_MESSAGE(obterSaudacao()));
+      leadHandler.iniciarCaptura(msg.from);
+      return;
+    }
+
+    if (inicios.includes(texto)) {
+      const chat = await msg.getChat();
+      await new Promise((r) => setTimeout(r, 2000 + Math.random() * 2000));
+      await chat.sendStateTyping();
+      await new Promise((r) => setTimeout(r, 2000 + Math.random() * 2000));
+      await client.sendMessage(msg.from, await handleInicio(msg.from));
+      return;
+    }
+
+    const chat = await msg.getChat();
+    await new Promise((r) => setTimeout(r, 2000 + Math.random() * 3000));
+    await chat.sendStateTyping();
+    await new Promise((r) => setTimeout(r, 3000 + Math.random() * 3000));
+
+    const resposta = await processarMensagem(msg, client);
+    if (resposta) {
+      await client.sendMessage(msg.from, resposta);
+    }
+  } catch (error) {
+    logger.error(`Erro ao processar mensagem de ${msg.from}: ${error.message}`);
+  }
+});
 
 const iniciar = async () => {
   try {
@@ -20,61 +77,10 @@ const iniciar = async () => {
     logger.info("Banco de dados sincronizado.");
 
     await iniciarServidor();
-
     iniciarLembretes();
-
-    client.on("message", async (msg) => {
-      if (!msg.from.endsWith("@c.us")) return;
-      if (msg.from === "status@broadcast") return;
-
-      if (botState.contatosRespondidos.has(msg.from)) {
-        logger.info(`Cooldown ativo para ${msg.from}. Ignorando.`);
-        return;
-      }
-
-      try {
-        botState.contatosRespondidos.add(msg.from);
-        setTimeout(() => {
-          botState.contatosRespondidos.delete(msg.from);
-        }, COOLDOWN_MS);
-
-        if (
-          msg.body.trim().toUpperCase() === "MENU" ||
-          msg.body.trim().toUpperCase() === "OI" ||
-          msg.body.trim().toUpperCase() === "OLÁ" ||
-          msg.body.trim().toUpperCase() === "OLA" ||
-          msg.body.trim().toUpperCase() === "BOM DIA" ||
-          msg.body.trim().toUpperCase() === "BOA TARDE" ||
-          msg.body.trim().toUpperCase() === "BOA NOITE" ||
-          msg.body.trim().toUpperCase() === "INICIAR"
-        ) {
-          const chat = await msg.getChat();
-          await randomDelay(2000, 4000);
-          await chat.sendStateTyping();
-          await randomDelay(2000, 4000);
-
-          const resposta = await handleInicio(msg.from);
-          await client.sendMessage(msg.from, resposta);
-          return;
-        }
-
-        const chat = await msg.getChat();
-        await randomDelay(2000, 5000);
-        await chat.sendStateTyping();
-        await randomDelay(3000, 6000);
-
-        const resposta = await processarMensagem(msg, client);
-        if (resposta) {
-          await client.sendMessage(msg.from, resposta);
-        }
-      } catch (error) {
-        logger.error(`Erro ao processar mensagem de ${msg.from}: ${error.message}`);
-      }
-    });
-
     client.initialize();
   } catch (error) {
-    logger.error(`Erro ao iniciar bot: ${error.message}`);
+    logger.error(`Erro ao iniciar: ${error.message}`);
     process.exit(1);
   }
 };
